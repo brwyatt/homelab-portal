@@ -5,8 +5,9 @@ from app.main import app, reload_configuration
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
     # Load example config for tests
+    monkeypatch.setenv("PORTAL_CONFIG_PATH", "config.yml.example")
     reload_configuration()
     return TestClient(app)
 
