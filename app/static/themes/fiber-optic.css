@@ -1,0 +1,43 @@
+/* "Fiber Optic" (Tech Calm) Theme
+   Palette:
+   - Deep background: #101c2a
+   - Coat Navy / Cards: #162536 / #1f3a52
+   - Bright Cyan / Accent: #34c3b1
+   - High-contrast text: #f8fafc
+   - Subtle cyan neon glow on hover
+*/
+:root {
+  --bg-primary: #101c2a;
+  --bg-card: #162536;
+  --bg-input: #0d1722;
+  --text-primary: #f8fafc;
+  --text-secondary: #9cb2c9;
+  --text-muted: #647d96;
+  --border-color: #1f3a52;
+  --accent-color: #34c3b1;
+  --accent-glow: rgba(52, 195, 177, 0.25);
+  --card-hover-shadow: 0 12px 30px -5px rgba(52, 195, 177, 0.15), 0 4px 10px -2px rgba(0, 0, 0, 0.4);
+  --icon-bg: rgba(52, 195, 177, 0.08);
+}
+
+.portal-title {
+  background: linear-gradient(135deg, #ffffff 40%, #34c3b1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.service-card:hover {
+  border-color: rgba(52, 195, 177, 0.5);
+}
+
+.badge-network {
+  background: rgba(52, 195, 177, 0.1);
+  border-color: rgba(52, 195, 177, 0.25);
+  color: #34c3b1;
+}
+
+.badge-user {
+  background: rgba(167, 139, 250, 0.1);
+  border-color: rgba(167, 139, 250, 0.25);
+  color: #c4b5fd;
+}

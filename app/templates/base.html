@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ config.ui.title }}{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2334c3b1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='2' y='2' width='20' height='8' rx='2' ry='2'></rect><rect x='2' y='14' width='20' height='8' rx='2' ry='2'></rect><line x1='6' y1='6' x2='6.01' y2='6'></line><line x1='6' y1='18' x2='6.01' y2='18'></line></svg>">
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/theme.css">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <div class="portal-wrapper">
+    <header class="portal-header">
+      <div class="header-left">
+        <h1 class="portal-title">{{ config.ui.title }}</h1>
+        {% if config.ui.subtitle %}
+        <p class="portal-subtitle">{{ config.ui.subtitle }}</p>
+        {% endif %}
+      </div>
+      <div class="header-right">
+        {% if config.ui.show_network_badge %}
+        <div class="badge badge-network" title="Client IP: {{ location.client_ip }}{% if location.subnet_cidr %} ({{ location.subnet_cidr }}){% endif %}">
+          <span class="badge-dot"></span>
+          <span class="badge-label">{{ location.network_class_name }}</span>
+          <span class="badge-detail">{{ location.subnet_name }}</span>
+        </div>
+        {% endif %}
+
+        {% if config.ui.show_user_badge and user.authenticated %}
+        <div class="badge badge-user" title="Groups: {{ user.groups | join(', ') }}">
+          <svg class="badge-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span class="badge-label">{{ user.display_name }}</span>
+          {% if config.auth.logout_url %}
+          <a href="{{ config.auth.logout_url }}" class="badge-link" title="Sign Out">&times;</a>
+          {% endif %}
+        </div>
+        {% elif config.ui.show_user_badge and config.auth.enabled and config.auth.login_url %}
+        <a href="{{ config.auth.login_url }}" class="badge badge-login">Sign In</a>
+        {% endif %}
+      </div>
+    </header>
+
+    {% block content %}{% endblock %}
+
+    <footer class="portal-footer">
+      <div class="footer-content">
+        {% if config.ui.footer_text %}
+        <span>{{ config.ui.footer_text }}</span>
+        {% else %}
+        <span>Homelab Portal</span>
+        {% endif %}
+        <span class="footer-meta">Connected via {{ location.client_ip }}</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/static/js/portal.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,22 @@
+[Unit]
+Description=Homelab Portal Service
+After=network.target
+
+[Service]
+Type=simple
+User=homelab-portal
+Group=homelab-portal
+WorkingDirectory=/opt/homelab-portal
+Environment="PORTAL_CONFIG_PATH=/etc/homelab-portal/config.yml"
+ExecStart=/opt/homelab-portal/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers 2 --proxy-headers
+Restart=always
+RestartSec=5s
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
