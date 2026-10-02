@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ status_code }} - {{ config.ui.title }}{% endblock %}
+
+{% block content %}
+<main class="portal-main">
+  <div class="empty-state error-state">
+    <h2>{{ status_code }} - {{ detail or "An error occurred" }}</h2>
+    <p>Please check your configuration or network connectivity.</p>
+    <a href="/" class="btn-primary" style="margin-top: 1rem; display: inline-block;">Return Home</a>
+  </div>
+</main>
+{% endblock %}
