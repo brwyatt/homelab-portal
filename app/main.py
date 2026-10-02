@@ -1,16 +1,14 @@
 """FastAPI application entrypoint and route definitions."""
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Any, Dict
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.auth import get_user_context
-from app.config import PortalConfig, find_config_file, load_config
+from app.config import PortalConfig, load_config
 from app.network import get_client_ip, resolve_location
 from app.service_loader import get_accessible_services
 
@@ -29,7 +27,7 @@ def reload_configuration() -> PortalConfig:
 
 
 # Initial load
-reload_configuration()
+_ = reload_configuration()
 
 app = FastAPI(
     title=config.ui.title,
@@ -97,19 +95,19 @@ async def index(request: Request) -> HTMLResponse:
 
 
 @app.get("/healthz")
-async def healthz() -> Dict[str, str]:
+async def healthz() -> dict[str, str]:
     """Liveness probe."""
     return {"status": "ok"}
 
 
 @app.get("/readyz")
-async def readyz() -> Dict[str, str]:
+async def readyz() -> dict[str, str]:
     """Readiness probe."""
     return {"status": "ready"}
 
 
 @app.get("/api/context")
-async def api_context(request: Request) -> Dict[str, Any]:
+async def api_context(request: Request) -> dict[str, object]:
     """Return JSON debugging/status info about the current client context."""
     client_ip = get_client_ip(request, config.network)
     location = resolve_location(client_ip, config)
@@ -133,7 +131,7 @@ async def api_context(request: Request) -> Dict[str, Any]:
 
 
 @app.get("/api/services")
-async def api_services(request: Request) -> Dict[str, Any]:
+async def api_services(request: Request) -> dict[str, object]:
     """Return JSON representation of accessible categories and services for client."""
     client_ip = get_client_ip(request, config.network)
     location = resolve_location(client_ip, config)

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing_extensions import override
 import ipaddress
 import yaml
 from pydantic import BaseModel, Field, field_validator
@@ -11,13 +11,13 @@ from pydantic import BaseModel, Field, field_validator
 
 class UIConfig(BaseModel):
     title: str = "Homelab Portal"
-    subtitle: Optional[str] = "Services & Resources"
+    subtitle: str | None = "Services & Resources"
     theme: str = "fiber-optic"
-    custom_themes_dir: Optional[str] = None
+    custom_themes_dir: str | None = None
     show_search: bool = True
     show_network_badge: bool = True
     show_user_badge: bool = True
-    footer_text: Optional[str] = None
+    footer_text: str | None = None
 
 
 class AuthConfig(BaseModel):
@@ -27,44 +27,44 @@ class AuthConfig(BaseModel):
     header_email: str = "Remote-Email"
     header_groups: str = "Remote-Groups"
     header_group_delimiter: str = ","
-    login_url: Optional[str] = None
-    logout_url: Optional[str] = None
+    login_url: str | None = None
+    logout_url: str | None = None
 
 
 class NetworkClassConfig(BaseModel):
     name: str
     icon: str = "network"
-    badge_color: Optional[str] = None
+    badge_color: str | None = None
 
 
 class SubnetConfig(BaseModel):
     cidr: str
     name: str
     network_class: str
-    icon: Optional[str] = None
+    icon: str | None = None
 
     @field_validator("cidr")
     @classmethod
     def validate_cidr(cls, v: str) -> str:
         try:
-            ipaddress.ip_network(v, strict=False)
+            _ = ipaddress.ip_network(v, strict=False)
         except ValueError as e:
             raise ValueError(f"Invalid CIDR block: {v}") from e
         return v
 
 
 class NetworkConfig(BaseModel):
-    trusted_proxies: List[str] = Field(default_factory=lambda: ["127.0.0.1/32", "::1/128"])
+    trusted_proxies: list[str] = Field(default_factory=lambda: ["127.0.0.1/32", "::1/128"])
     fallback_class: str = "external"
     fallback_name: str = "External / Unknown"
     fallback_icon: str = "globe"
 
     @field_validator("trusted_proxies")
     @classmethod
-    def validate_proxies(cls, v: List[str]) -> List[str]:
+    def validate_proxies(cls, v: list[str]) -> list[str]:
         for cidr in v:
             try:
-                ipaddress.ip_network(cidr, strict=False)
+                _ = ipaddress.ip_network(cidr, strict=False)
             except ValueError as e:
                 raise ValueError(f"Invalid proxy CIDR block: {cidr}") from e
         return v
@@ -73,24 +73,25 @@ class NetworkConfig(BaseModel):
 class CategoryConfig(BaseModel):
     id: str
     name: str
-    icon: Optional[str] = None
+    icon: str | None = None
     order: int = 100
 
 
 class ServiceConfig(BaseModel):
     name: str
     url: str
-    description: Optional[str] = None
+    description: str | None = None
     category: str
-    icon: Optional[str] = None
-    network_classes: Optional[List[str]] = None
-    requires_groups: Optional[List[str]] = None
+    icon: str | None = None
+    network_classes: list[str] | None = None
+    requires_groups: list[str] | None = None
     require_all_groups: bool = False
-    public: Optional[bool] = None
+    public: bool | None = None
     target: str = "_blank"
     order: int = 100
     enabled: bool = True
 
+    @override
     def model_post_init(self, __context: object) -> None:
         if self.public is None:
             self.public = self.requires_groups is None or len(self.requires_groups) == 0
@@ -100,13 +101,13 @@ class PortalConfig(BaseModel):
     ui: UIConfig = Field(default_factory=UIConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
     network: NetworkConfig = Field(default_factory=NetworkConfig)
-    network_classes: Dict[str, NetworkClassConfig] = Field(default_factory=dict)
-    subnets: List[SubnetConfig] = Field(default_factory=list)
-    categories: List[CategoryConfig] = Field(default_factory=list)
-    services: List[ServiceConfig] = Field(default_factory=list)
+    network_classes: dict[str, NetworkClassConfig] = Field(default_factory=dict)
+    subnets: list[SubnetConfig] = Field(default_factory=list)
+    categories: list[CategoryConfig] = Field(default_factory=list)
+    services: list[ServiceConfig] = Field(default_factory=list)
 
 
-def find_config_file() -> Optional[Path]:
+def find_config_file() -> Path | None:
     """Find configuration file following resolution order:
     1. PORTAL_CONFIG_PATH environment variable
     2. /etc/homelab-portal/config.yml
@@ -135,7 +136,7 @@ def find_config_file() -> Optional[Path]:
     return None
 
 
-def load_config(config_path: Optional[Path | str] = None) -> PortalConfig:
+def load_config(config_path: Path | str | None = None) -> PortalConfig:
     """Load and validate configuration from YAML file or return default."""
     target_path = Path(config_path) if config_path else find_config_file()
     if not target_path or not target_path.is_file():
@@ -143,6 +144,6 @@ def load_config(config_path: Optional[Path | str] = None) -> PortalConfig:
         return PortalConfig()
 
     with open(target_path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+        data: object = yaml.safe_load(f) or {}
 
     return PortalConfig.model_validate(data)

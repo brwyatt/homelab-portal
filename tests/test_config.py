@@ -1,5 +1,5 @@
 import pytest
-from app.config import PortalConfig, SubnetConfig, load_config
+from app.config import PortalConfig, ServiceConfig, SubnetConfig, load_config
 
 
 def test_default_config():
@@ -17,19 +17,19 @@ def test_subnet_validation():
 
     # Invalid CIDR
     with pytest.raises(ValueError):
-        SubnetConfig(cidr="invalid-cidr", name="LAN", network_class="internal")
+        _ = SubnetConfig(cidr="invalid-cidr", name="LAN", network_class="internal")
 
 
 def test_service_public_default():
     config = PortalConfig(
         services=[
-            {"name": "Public Service", "url": "https://pub.com", "category": "general"},
-            {
-                "name": "Restricted Service",
-                "url": "https://priv.com",
-                "category": "general",
-                "requires_groups": ["admins"],
-            },
+            ServiceConfig(name="Public Service", url="https://pub.com", category="general"),
+            ServiceConfig(
+                name="Restricted Service",
+                url="https://priv.com",
+                category="general",
+                requires_groups=["admins"],
+            ),
         ]
     )
     assert config.services[0].public is True

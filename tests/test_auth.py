@@ -1,5 +1,6 @@
 from unittest.mock import Mock
-from app.auth import AuthConfig, UserContext, get_user_context
+from app.auth import UserContext, get_user_context
+from app.config import AuthConfig
 
 
 def test_user_context_has_group():

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import ipaddress
 from dataclasses import dataclass
-from typing import List, Optional
 from fastapi import Request
 
 from app.config import NetworkConfig, PortalConfig, SubnetConfig
@@ -15,7 +14,7 @@ class NetworkLocation:
     network_class: str
     network_class_name: str
     network_class_icon: str
-    subnet_cidr: Optional[str]
+    subnet_cidr: str | None
     subnet_name: str
     icon: str
 
@@ -75,7 +74,7 @@ def resolve_location(client_ip: str, config: PortalConfig) -> NetworkLocation:
         )
 
     # Sort subnets by prefix length descending for longest prefix match
-    parsed_subnets: List[tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, SubnetConfig]] = []
+    parsed_subnets: list[tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, SubnetConfig]] = []
     for s in config.subnets:
         try:
             net = ipaddress.ip_network(s.cidr, strict=False)

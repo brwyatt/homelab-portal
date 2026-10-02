@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List
 from app.auth import UserContext
 from app.config import CategoryConfig, PortalConfig, ServiceConfig
 from app.network import NetworkLocation
@@ -14,7 +13,7 @@ class GroupedCategory:
     name: str
     icon: str
     order: int
-    services: List[ServiceConfig]
+    services: list[ServiceConfig]
 
 
 def is_service_visible(
@@ -49,7 +48,7 @@ def get_accessible_services(
     config: PortalConfig,
     user: UserContext,
     location: NetworkLocation,
-) -> List[GroupedCategory]:
+) -> list[GroupedCategory]:
     """Filter services by access rules and group them into categories."""
     # Filter visible services
     visible_services = [
@@ -57,15 +56,15 @@ def get_accessible_services(
     ]
 
     # Map categories by ID
-    category_map: Dict[str, CategoryConfig] = {c.id: c for c in config.categories}
+    category_map: dict[str, CategoryConfig] = {c.id: c for c in config.categories}
 
     # Group services by category ID
-    services_by_cat: Dict[str, List[ServiceConfig]] = {}
+    services_by_cat: dict[str, list[ServiceConfig]] = {}
     for service in visible_services:
         services_by_cat.setdefault(service.category, []).append(service)
 
     # Build grouped list
-    result: List[GroupedCategory] = []
+    result: list[GroupedCategory] = []
     for cat_id, cat_services in services_by_cat.items():
         cat_cfg = category_map.get(cat_id)
         if cat_cfg:

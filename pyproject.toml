@@ -25,6 +25,8 @@ dev = [
     "pytest>=8.0.0",
     "httpx>=0.27.0",
     "pytest-asyncio>=0.23.0",
+    "basedpyright>=1.20.0",
+    "types-PyYAML>=6.0.12",
 ]
 
 [tool.pytest.ini_options]
@@ -36,4 +38,19 @@ include = ["app*"]
 
 [tool.setuptools.package-data]
 "app" = ["templates/**/*", "static/**/*"]
+
+[tool.basedpyright]
+include = ["app", "tests"]
+pythonVersion = "3.11"
+reportUnusedCallResult = "warning"
+reportDeprecated = "warning"
+reportAny = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportMissingParameterType = false
+reportUnknownArgumentType = false
+
+
+
 
