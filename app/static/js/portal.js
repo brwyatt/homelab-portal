@@ -322,7 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Initial status check and periodic refresh every 15s
+  // Initial status check on page load (no periodic polling to avoid idle client background traffic)
   updateHealthStatuses();
-  setInterval(updateHealthStatuses, 15000);
 });
