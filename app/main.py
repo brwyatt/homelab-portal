@@ -68,6 +68,11 @@ def reload_configuration() -> PortalConfig:
     global config
     config = load_config()
     icon_service.clear_cache()
+    try:
+        loop = asyncio.get_running_loop()
+        _ = loop.create_task(prewarm_assets(config))
+    except RuntimeError:
+        pass
     return config
 
 

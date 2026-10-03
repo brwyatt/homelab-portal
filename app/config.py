@@ -76,6 +76,7 @@ class CategoryConfig(BaseModel):
     name: str
     icon: str | None = None
     order: int = 100
+    services: list[ServiceConfig] = Field(default_factory=list)
 
 
 class ServiceConfig(BaseModel):
@@ -122,6 +123,24 @@ class PortalConfig(BaseModel):
             if s.service_id == service_id:
                 return s
         return None
+
+    @override
+    def model_post_init(self, __context: object) -> None:
+        # Merge any services defined nested under categories into the main services list
+        existing: dict[str, ServiceConfig] = {s.service_id: s for s in self.services}
+        for cat in self.categories:
+            for s in cat.services:
+                if not s.category:
+                    s.category = cat.id
+                if s.service_id in existing:
+                    target = existing[s.service_id]
+                    if target.icon is None and s.icon is not None:
+                        target.icon = s.icon
+                    if target.fallback_icon is None and s.fallback_icon is not None:
+                        target.fallback_icon = s.fallback_icon
+                else:
+                    self.services.append(s)
+                    existing[s.service_id] = s
 
 
 def find_config_file() -> Path | None:
