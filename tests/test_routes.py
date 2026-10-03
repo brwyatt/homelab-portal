@@ -44,3 +44,21 @@ def test_index_page(client: TestClient):
     assert res.status_code == 200
     assert "Homelab Portal" in res.text
     assert 'id="service-search"' in res.text
+
+
+def test_index_page_login_url_variable_substitution(client: TestClient):
+    from app.main import config
+    config.auth.enabled = True
+    config.auth.login_url = "https://auth.example.com/?rd=$scheme://$http_host$request_uri"
+    config.ui.show_user_badge = True
+
+    res = client.get(
+        "/",
+        headers={
+            "Host": "home.brwyatt.net",
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "home.brwyatt.net",
+        },
+    )
+    assert res.status_code == 200
+    assert 'href="https://auth.example.com/?rd=https://home.brwyatt.net/"' in res.text

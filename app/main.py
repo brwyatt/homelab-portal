@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.auth import get_user_context
+from app.auth import get_user_context, resolve_auth_url
 from app.config import PortalConfig, load_config
 from app.network import get_client_ip, resolve_location
 from app.service_loader import get_accessible_services
@@ -81,6 +81,8 @@ async def index(request: Request) -> HTMLResponse:
     location = resolve_location(client_ip, config)
     user = get_user_context(request, config.auth)
     categories = get_accessible_services(config, user, location)
+    login_url = resolve_auth_url(config.auth.login_url, request) if config.auth.enabled else None
+    logout_url = resolve_auth_url(config.auth.logout_url, request) if config.auth.enabled else None
 
     return templates.TemplateResponse(
         request=request,
@@ -90,6 +92,8 @@ async def index(request: Request) -> HTMLResponse:
             "user": user,
             "location": location,
             "categories": categories,
+            "login_url": login_url,
+            "logout_url": logout_url,
         },
     )
 

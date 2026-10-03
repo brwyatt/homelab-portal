@@ -1,6 +1,8 @@
 """Authentication context parsing and user model."""
 from __future__ import annotations
 
+import re
+import urllib.parse
 from dataclasses import dataclass, field
 from fastapi import Request
 
@@ -63,3 +65,65 @@ def get_user_context(request: Request, auth_config: AuthConfig) -> UserContext:
         email=email,
         groups=groups,
     )
+
+
+def resolve_auth_url(url_template: str | None, request: Request | None) -> str | None:
+    """Resolve dynamic placeholders in an authentication URL template using request headers.
+
+    Supported variables (syntax: $var, ${var}, or {var}):
+      - scheme: 'https' or 'http' (honors X-Forwarded-Proto, X-Forwarded-Scheme)
+      - http_host: host with port if specified in Host / X-Forwarded-Host
+      - host: hostname without port
+      - request_uri: request path with query string (honors X-Forwarded-Uri)
+      - uri: alias for request_uri
+      - url: full URL ($scheme://$http_host$request_uri)
+      - escaped_url: URL-encoded full URL for query parameter safety
+    """
+    if not url_template:
+        return None
+    if not request:
+        return url_template
+
+    raw_scheme = (
+        request.headers.get("x-forwarded-proto")
+        or request.headers.get("x-forwarded-scheme")
+        or request.url.scheme
+        or "http"
+    )
+    scheme = raw_scheme.split(",")[0].strip()
+
+    raw_host = (
+        request.headers.get("x-forwarded-host")
+        or request.headers.get("host")
+        or request.url.netloc
+        or "localhost"
+    )
+    http_host = raw_host.split(",")[0].strip()
+    host = http_host.split(":")[0] if ":" in http_host else http_host
+
+    uri = request.headers.get("x-forwarded-uri")
+    if not uri:
+        path = request.url.path or "/"
+        query = request.url.query
+        uri = f"{path}?{query}" if query else path
+
+    full_url = f"{scheme}://{http_host}{uri}"
+
+    var_map: dict[str, str] = {
+        "scheme": scheme,
+        "http_host": http_host,
+        "host": host,
+        "request_uri": uri,
+        "uri": uri,
+        "url": full_url,
+        "escaped_url": urllib.parse.quote(full_url, safe=""),
+    }
+
+    pattern = re.compile(r"\$\{([a-zA-Z0-9_]+)\}|\$([a-zA-Z0-9_]+)|\{([a-zA-Z0-9_]+)\}")
+
+    def _replace(match: re.Match[str]) -> str:
+        var_name = match.group(1) or match.group(2) or match.group(3)
+        return var_map.get(var_name, match.group(0))
+
+    return pattern.sub(_replace, url_template)
+

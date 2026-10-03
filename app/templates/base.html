@@ -34,12 +34,12 @@
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
           <span class="badge-label">{{ user.display_name }}</span>
-          {% if config.auth.logout_url %}
-          <a href="{{ config.auth.logout_url }}" class="badge-link" title="Sign Out">&times;</a>
+          {% if logout_url or config.auth.logout_url %}
+          <a href="{{ logout_url or config.auth.logout_url }}" class="badge-link" title="Sign Out">&times;</a>
           {% endif %}
         </div>
-        {% elif config.ui.show_user_badge and config.auth.enabled and config.auth.login_url %}
-        <a href="{{ config.auth.login_url }}" class="badge badge-login">Sign In</a>
+        {% elif config.ui.show_user_badge and config.auth.enabled and (login_url or config.auth.login_url) %}
+        <a href="{{ login_url or config.auth.login_url }}" class="badge badge-login">Sign In</a>
         {% endif %}
       </div>
     </header>
