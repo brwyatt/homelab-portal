@@ -66,14 +66,12 @@
             <p class="service-description">{{ service.description }}</p>
             {% endif %}
           </div>
-          {% if service.healthcheck %}
           <div class="card-footer">
             <span class="status-pill status-loading" title="Checking health...">
               <span class="status-dot"></span>
               <span class="status-text">Checking...</span>
             </span>
           </div>
-          {% endif %}
         </a>
         {% endfor %}
       </div>

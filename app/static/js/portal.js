@@ -300,11 +300,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const info = statuses[serviceId];
         if (!info || info.status === 'unknown') {
-          // If no healthcheck or unknown, keep as unknown
+          // No healthcheck configured or status unknown
           pill.className = 'status-pill status-unknown';
           const textEl = pill.querySelector('.status-text');
           if (textEl) textEl.textContent = 'Unknown';
-          pill.title = info?.message || 'Status unknown';
+          pill.title = info?.message || 'No health check configured';
         } else if (info.status === 'up') {
           pill.className = 'status-pill status-up';
           const textEl = pill.querySelector('.status-text');
