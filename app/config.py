@@ -71,6 +71,17 @@ class NetworkConfig(BaseModel):
         return v
 
 
+class HealthCheckConfig(BaseModel):
+    url: str | None = None
+    method: str = "GET"
+    interval: int = 15  # Status cache TTL in seconds
+    timeout: float = 5.0  # Request timeout in seconds
+    expected_status: list[int] = Field(default_factory=lambda: [200, 201, 202, 204])
+    json_query: str | None = None
+    text_match: str | None = None
+    headers: dict[str, str] = Field(default_factory=dict)
+
+
 class ServiceConfig(BaseModel):
     name: str
     url: str
@@ -85,6 +96,7 @@ class ServiceConfig(BaseModel):
     target: str = "_blank"
     order: int | None = None
     enabled: bool = True
+    healthcheck: HealthCheckConfig | None = None
 
     @property
     def service_id(self) -> str:
