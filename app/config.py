@@ -72,6 +72,7 @@ class NetworkConfig(BaseModel):
 
 
 class HealthCheckConfig(BaseModel):
+    path: str | None = None
     url: str | None = None
     method: str = "GET"
     interval: int = 15  # Status cache TTL in seconds

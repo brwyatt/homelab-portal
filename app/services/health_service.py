@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+import urllib.parse
 from typing import Any, final
 import httpx
 import jsonata  # type: ignore[import-untyped,import-not-found]
@@ -81,7 +82,13 @@ class HealthCheckService:
         if hc is None:
             return ServiceStatus(status="unknown", message="No healthcheck configured")
 
-        target_url = hc.url or service.url
+        if hc.url:
+            target_url = hc.url
+        elif hc.path:
+            base = service.url.rstrip("/") + "/"
+            target_url = urllib.parse.urljoin(base, hc.path.lstrip("/"))
+        else:
+            target_url = service.url
         now = time.time()
         client = self._get_client()
 

@@ -88,6 +88,30 @@ async def test_healthcheck_text_match():
 
 
 @pytest.mark.asyncio
+async def test_healthcheck_relative_path():
+    requested_url = ""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal requested_url
+        requested_url = str(request.url)
+        return httpx.Response(200, text="OK")
+
+    transport = httpx.MockTransport(handler)
+    client = httpx.AsyncClient(transport=transport)
+    hs = HealthCheckService(client=client)
+
+    service = ServiceConfig(
+        name="Relative Path Service",
+        url="https://app.local/base",
+        healthcheck=HealthCheckConfig(path="/status"),
+    )
+    status = await hs.get_service_status(service)
+    assert status.status == "up"
+    assert requested_url == "https://app.local/base/status"
+    await hs.close()
+
+
+@pytest.mark.asyncio
 async def test_healthcheck_jsonata_expression():
     payload_ok = {
         "port_9000": {"status": "OK", "message": "Port 9000 on 127.0.0.1 is listening"},
