@@ -332,3 +332,74 @@ kbd {
   flex-wrap: wrap;
   gap: 1rem;
 }
+
+/* Collapsible and Reorderable Sections */
+.category-header {
+  position: relative;
+  user-select: none;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.25rem 0.5rem;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.category-header:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.category-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #94a3b8);
+  opacity: 0.35;
+  cursor: grab;
+  padding: 0.25rem 0.25rem 0.25rem 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.category-header:hover .category-drag-handle {
+  opacity: 0.85;
+}
+
+.category-drag-handle:active {
+  cursor: grabbing;
+}
+
+.category-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.category-chevron {
+  transition: transform 0.2s ease;
+  color: var(--text-muted, #94a3b8);
+}
+
+.category-section.is-collapsed .category-chevron {
+  transform: rotate(-90deg);
+}
+
+.category-section.is-dragging {
+  opacity: 0.4;
+  border: 1px dashed var(--accent, #38bdf8);
+  border-radius: var(--radius-md, 8px);
+}
+
+.category-section.drag-over-above {
+  border-top: 2px solid var(--accent, #38bdf8);
+}
+
+.category-section.drag-over-below {
+  border-bottom: 2px solid var(--accent, #38bdf8);
+}

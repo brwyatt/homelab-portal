@@ -7,7 +7,7 @@ import os
 import re
 from pathlib import Path
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class UIConfig(BaseModel):
@@ -71,19 +71,11 @@ class NetworkConfig(BaseModel):
         return v
 
 
-class CategoryConfig(BaseModel):
-    id: str
-    name: str
-    icon: str | None = None
-    order: int = 100
-    services: list[ServiceConfig] = Field(default_factory=list)
-
-
 class ServiceConfig(BaseModel):
     name: str
     url: str
     description: str | None = None
-    category: str
+    category: str | None = None
     icon: str | None = None
     fallback_icon: str | None = None
     network_classes: list[str] | None = None
@@ -91,7 +83,7 @@ class ServiceConfig(BaseModel):
     require_all_groups: bool = False
     public: bool | None = None
     target: str = "_blank"
-    order: int = 100
+    order: int | None = None
     enabled: bool = True
 
     @property
@@ -120,6 +112,23 @@ class ServiceConfig(BaseModel):
             self.icon = self.fallback_icon
 
 
+class CategoryConfig(BaseModel):
+    id: str
+    name: str
+    icon: str | None = None
+    order: int | None = None
+    services: list[ServiceConfig] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def populate_services_metadata(self) -> CategoryConfig:
+        for idx, svc in enumerate(self.services):
+            if not svc.category:
+                svc.category = self.id
+            if svc.order is None:
+                svc.order = (idx + 1) * 10
+        return self
+
+
 class PortalConfig(BaseModel):
     ui: UIConfig = Field(default_factory=UIConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
@@ -135,9 +144,14 @@ class PortalConfig(BaseModel):
                 return s
         return None
 
-    @override
-    def model_post_init(self, __context: object) -> None:
-        # Merge any services defined nested under categories into the main services list
+    @model_validator(mode="after")
+    def sync_categories_and_services(self) -> PortalConfig:
+        # Default category order from definition order if not explicitly set
+        for cat_idx, cat in enumerate(self.categories):
+            if cat.order is None:
+                cat.order = (cat_idx + 1) * 10
+
+        # Merge any category.services into the main services list
         existing: dict[str, ServiceConfig] = {s.service_id: s for s in self.services}
         for cat in self.categories:
             for s in cat.services:
@@ -149,9 +163,18 @@ class PortalConfig(BaseModel):
                         target.icon = s.icon
                     if target.fallback_icon is None and s.fallback_icon is not None:
                         target.fallback_icon = s.fallback_icon
+                    if target.order is None and s.order is not None:
+                        target.order = s.order
                 else:
                     self.services.append(s)
                     existing[s.service_id] = s
+
+        # Ensure any top-level services without an explicit order get sequenced
+        for idx, s in enumerate(self.services):
+            if s.order is None:
+                s.order = (idx + 1) * 10
+
+        return self
 
 
 def find_config_file() -> Path | None:
