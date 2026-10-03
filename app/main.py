@@ -11,12 +11,14 @@ from app.auth import get_user_context, resolve_auth_url
 from app.config import PortalConfig, load_config
 from app.network import get_client_ip, resolve_location
 from app.service_loader import get_accessible_services
+from app.services.icon_service import IconService
 
 app_dir = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(app_dir / "templates"))
 
 # Global config container
 config: PortalConfig = PortalConfig()
+icon_service: IconService = IconService()
 
 
 def reload_configuration() -> PortalConfig:
@@ -165,3 +167,29 @@ async def api_services(request: Request) -> dict[str, object]:
             for c in categories
         ],
     }
+
+
+@app.api_route("/api/services/{service_id}/icon", methods=["GET", "HEAD"])
+async def get_service_icon(service_id: str, request: Request) -> Response:
+    """Fetch or serve cached favicon/icon for a service."""
+    service = config.get_service_by_id(service_id)
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    cached_icon = await icon_service.get_icon(service)
+    if not cached_icon:
+        raise HTTPException(status_code=404, detail="Icon not found")
+
+    # ETag / 304 handling
+    client_etag = request.headers.get("if-none-match")
+    if client_etag and client_etag.strip('"') == cached_icon.etag:
+        return Response(status_code=304, headers={"ETag": f'"{cached_icon.etag}"'})
+
+    return Response(
+        content=cached_icon.content,
+        media_type=cached_icon.media_type,
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "ETag": f'"{cached_icon.etag}"',
+        },
+    )

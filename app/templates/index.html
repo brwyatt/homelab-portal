@@ -27,15 +27,8 @@
         <a href="{{ service.url }}" target="{{ service.target }}" rel="noopener noreferrer" class="service-card" data-name="{{ service.name | lower }}" data-description="{{ (service.description or '') | lower }}" data-category="{{ category.name | lower }}">
           <div class="card-top">
             <div class="card-icon">
-              {% if service.icon %}
-                {% if service.icon.startswith('http://') or service.icon.startswith('https://') or service.icon.startswith('/') %}
-                  <img src="{{ service.icon }}" alt="{{ service.name }}" class="icon-img" loading="lazy">
-                {% else %}
-                  <span class="icon-text">{{ service.name[:2] | upper }}</span>
-                {% endif %}
-              {% else %}
-                <span class="icon-text">{{ service.name[:2] | upper }}</span>
-              {% endif %}
+              <img src="/api/services/{{ service.service_id }}/icon" alt="{{ service.name }}" class="icon-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+              <span class="icon-text" style="display: none;">{{ service.name[:2] | upper }}</span>
             </div>
             <div class="card-badges">
               {% if service.target == '_blank' %}
