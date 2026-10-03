@@ -85,4 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.blur();
     }
   });
+
+  // Render Feather icons if library is loaded
+  if (typeof feather !== 'undefined' && feather.replace) {
+    feather.replace();
+  }
 });

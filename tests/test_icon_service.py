@@ -1,10 +1,21 @@
 import pytest
 import httpx
+from pathlib import Path
 from fastapi.testclient import TestClient
 
+from app.cache import DiskCache
 from app.config import PortalConfig, ServiceConfig
-from app.main import app, icon_service, reload_configuration
+from app.main import app, icon_service
 from app.services.icon_service import IconService
+
+
+@pytest.fixture(autouse=True)
+def isolate_test_disk_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure every test in this module runs with an isolated temporary disk cache."""
+    test_cache = DiskCache(cache_dir=tmp_path)
+    monkeypatch.setattr(icon_service.asset_cache, "disk_cache", test_cache)
+    # Also patch DiskCache default for any new IconService instances
+    monkeypatch.setattr("app.cache.get_default_cache_dir", lambda: tmp_path)
 
 
 def test_service_id_slug() -> None:
@@ -25,8 +36,9 @@ def test_get_service_by_id() -> None:
             ServiceConfig(name="PBS", url="https://pbs.example.com", category="core"),
         ]
     )
-    assert portal_cfg.get_service_by_id("pve") is not None
-    assert portal_cfg.get_service_by_id("pve").name == "PVE"
+    res = portal_cfg.get_service_by_id("pve")
+    assert res is not None
+    assert res.name == "PVE"
     assert portal_cfg.get_service_by_id("nonexistent") is None
 
 
@@ -61,7 +73,7 @@ async def test_cross_domain_redirect_blocked() -> None:
 
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
-        resp, final_url = await svc._safe_fetch(client, "https://app.example.com/", max_redirects=2)
+        resp, _ = await svc._safe_fetch(client, "https://app.example.com/", max_redirects=2)
         assert resp is None
 
 

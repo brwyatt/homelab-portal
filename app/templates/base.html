@@ -21,7 +21,11 @@
       <div class="header-right">
         {% if config.ui.show_network_badge %}
         <div class="badge badge-network" title="Client IP: {{ location.client_ip }}{% if location.subnet_cidr %} ({{ location.subnet_cidr }}){% endif %}">
+          {% if location.network_class_icon %}
+          <i data-feather="{{ location.network_class_icon | feather_name }}" class="badge-icon"></i>
+          {% else %}
           <span class="badge-dot"></span>
+          {% endif %}
           <span class="badge-label">{{ location.network_class_name }}</span>
           <span class="badge-detail">{{ location.subnet_name }}</span>
         </div>
@@ -58,6 +62,7 @@
     </footer>
   </div>
 
+  <script src="/static/vendor/feather.min.js" defer></script>
   <script src="/static/js/portal.js"></script>
   {% block scripts %}{% endblock %}
 </body>
