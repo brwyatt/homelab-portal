@@ -1,7 +1,6 @@
 """Disk-backed caching and asset fetching with stale-while-revalidate strategy."""
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import logging

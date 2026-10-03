@@ -51,7 +51,7 @@ def test_api_icons_endpoint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     test_disk_cache = DiskCache(cache_dir=tmp_path)
     test_asset_service = AssetCacheService(disk_cache=test_disk_cache)
     svg_data = b'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M1 1"/></svg>'
-    test_disk_cache.put("feather_icons", "home.svg", svg_data, "image/svg+xml", "etag-home", 3600.0)
+    test_disk_cache.put("feather_svg", "home.svg", svg_data, "image/svg+xml", "etag-home", 3600.0)
 
     monkeypatch.setattr(asset_cache_service, "disk_cache", test_disk_cache)
     monkeypatch.setattr(asset_cache_service, "get_feather_icon", test_asset_service.get_feather_icon)
