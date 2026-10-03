@@ -26,6 +26,9 @@ network:
   fallback_icon: "globe"
 
 network_classes:
+  management:
+    name: "Management Network"
+    icon: "shield"
   internal:
     name: "Home Network"
     icon: "home"
@@ -40,6 +43,9 @@ subnets:
   - cidr: "192.168.1.0/24"
     name: "Internal LAN"
     network_class: "internal"
+  - cidr: "10.10.0.0/24"
+    name: "Admin Subnet"
+    network_class: "management"
 
 # Categories and their nested services.
 # When order is omitted, sections and services preserve their natural YAML definition order.
@@ -53,11 +59,14 @@ categories:
         description: "Virtualization management cluster"
         icon: "server"
         network_classes:
-          - "internal"
-      - name: "Home Assistant"
-        url: "https://homeassistant.example.com"
-        description: "Home automation and IoT dashboard"
-        icon: "home"
+          - "management"
+      - name: "FreeIPA"
+        url: "https://ipa.example.com"
+        description: "Identity management & directory services"
+        icon: "key"
+        network_classes:
+          - "management"
+
   - id: "media"
     name: "Media & Streaming"
     icon: "film"
@@ -66,3 +75,12 @@ categories:
         url: "https://jellyfin.example.com"
         description: "Open source media streaming system"
         icon: "film"
+
+  - id: "home_automation"
+    name: "Home Automation"
+    icon: "home"
+    services:
+      - name: "Home Assistant"
+        url: "https://homeassistant.example.com"
+        description: "Home automation and IoT dashboard"
+        icon: "home"
