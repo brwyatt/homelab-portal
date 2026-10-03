@@ -85,6 +85,55 @@ async def test_same_domain_redirect_allowed() -> None:
 
 
 @pytest.mark.asyncio
+async def test_fallback_to_root_favicon_svg() -> None:
+    svg_content = b"<svg xmlns='http://www.w3.org/2000/svg'><circle r='10'/></svg>"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url == "https://app.example.com/":
+            return httpx.Response(200, text="<html><body>Hello</body></html>")
+        if request.url == "https://app.example.com/favicon.svg":
+            return httpx.Response(200, content=svg_content, headers={"Content-Type": "image/svg+xml"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    svc = IconService()
+    svc._get_client = lambda: httpx.AsyncClient(transport=transport)
+
+    service = ServiceConfig(name="MyApp SVG", url="https://app.example.com", category="core")
+    icon = await svc.get_icon(service)
+
+    assert icon is not None
+    assert icon.content == svg_content
+    assert icon.media_type == "image/svg+xml"
+
+
+@pytest.mark.asyncio
+async def test_fallback_prefers_svg_over_ico() -> None:
+    svg_content = b"<svg xmlns='http://www.w3.org/2000/svg'><circle r='10'/></svg>"
+    ico_content = b"\x00\x00\x01\x00\x01\x00\x10\x10"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url == "https://app.example.com/":
+            return httpx.Response(200, text="<html><body>Hello</body></html>")
+        if request.url == "https://app.example.com/favicon.svg":
+            return httpx.Response(200, content=svg_content, headers={"Content-Type": "image/svg+xml"})
+        if request.url == "https://app.example.com/favicon.ico":
+            return httpx.Response(200, content=ico_content, headers={"Content-Type": "image/x-icon"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    svc = IconService()
+    svc._get_client = lambda: httpx.AsyncClient(transport=transport)
+
+    service = ServiceConfig(name="MyApp Multi", url="https://app.example.com", category="core")
+    icon = await svc.get_icon(service)
+
+    assert icon is not None
+    assert icon.content == svg_content
+    assert icon.media_type == "image/svg+xml"
+
+
+@pytest.mark.asyncio
 async def test_fallback_to_root_favicon() -> None:
     # 1x1 transparent PNG bytes
     png_data = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
