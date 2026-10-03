@@ -253,6 +253,12 @@ body {
   object-fit: contain;
 }
 
+.card-icon .card-feather-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--accent-color, #38bdf8);
+}
+
 .card-icon .icon-text {
   font-size: 0.875rem;
   font-weight: 700;

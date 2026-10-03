@@ -1,6 +1,9 @@
 """FastAPI application entrypoint and route definitions."""
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+import asyncio
+import logging
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
@@ -8,23 +11,68 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.auth import get_user_context, resolve_auth_url
+from app.cache import AssetCacheService
 from app.config import PortalConfig, load_config
+from app.icons import normalize_icon_name
 from app.network import get_client_ip, resolve_location
 from app.service_loader import get_accessible_services
 from app.services.icon_service import IconService
 
+logger = logging.getLogger(__name__)
+
 app_dir = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(app_dir / "templates"))
+templates.env.filters["feather_name"] = normalize_icon_name
 
 # Global config container
 config: PortalConfig = PortalConfig()
-icon_service: IconService = IconService()
+asset_cache_service: AssetCacheService = AssetCacheService()
+icon_service: IconService = IconService(asset_cache=asset_cache_service)
+
+
+async def prewarm_assets(cfg: PortalConfig) -> None:
+    """Pre-warm vendor scripts and configured icons into disk cache asynchronously."""
+    try:
+        # Pre-warm Feather JS
+        _ = await asset_cache_service.get_feather_js()
+
+        # Collect configured icons to pre-warm
+        icons: set[str] = set()
+        for cat in cfg.categories:
+            if cat.icon:
+                icons.add(cat.icon)
+        for net in cfg.network_classes.values():
+            if net.icon:
+                icons.add(net.icon)
+        for svc in cfg.services:
+            if svc.fallback_icon:
+                icons.add(svc.fallback_icon)
+            elif svc.icon:
+                icons.add(svc.icon)
+
+        for icon in icons:
+            _ = await asset_cache_service.get_feather_icon(icon)
+    except Exception as e:
+        logger.debug(f"Pre-warming assets encountered non-critical error: {e}")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """FastAPI lifespan to trigger non-blocking asset pre-warming on startup."""
+    _ = asyncio.create_task(prewarm_assets(config))
+    yield
 
 
 def reload_configuration() -> PortalConfig:
     """Reload configuration from disk."""
     global config
     config = load_config()
+    icon_service.clear_cache()
+    try:
+        loop = asyncio.get_running_loop()
+        _ = loop.create_task(prewarm_assets(config))
+    except RuntimeError:
+        pass
     return config
 
 
@@ -35,7 +83,30 @@ app = FastAPI(
     title=config.ui.title,
     description="A lightweight, secure, and fast homelab landing page",
     version="0.1.0",
+    lifespan=lifespan,
 )
+
+
+@app.api_route("/static/vendor/feather.min.js", methods=["GET", "HEAD"])
+async def serve_vendor_feather_js(request: Request) -> Response:
+    """Serve Feather icon library from disk cache with stale-while-revalidate."""
+    asset = await asset_cache_service.get_feather_js()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Feather library not found")
+
+    client_etag = request.headers.get("if-none-match")
+    if client_etag and client_etag.strip('"') == asset.etag:
+        return Response(status_code=304, headers={"ETag": f'"{asset.etag}"'})
+
+    return Response(
+        content=asset.content,
+        media_type=asset.content_type,
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "ETag": f'"{asset.etag}"',
+        },
+    )
+
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(app_dir / "static")), name="static")
@@ -193,3 +264,32 @@ async def get_service_icon(service_id: str, request: Request) -> Response:
             "ETag": f'"{cached_icon.etag}"',
         },
     )
+
+
+@app.api_route("/api/icons/{icon_name}", methods=["GET", "HEAD"])
+async def get_feather_icon_asset(icon_name: str, request: Request) -> Response:
+    """Serve a Feather icon directly as SVG via disk cache."""
+    asset = await asset_cache_service.get_feather_icon(icon_name)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Icon not found")
+
+    client_etag = request.headers.get("if-none-match")
+    if client_etag and client_etag.strip('"') == asset.etag:
+        return Response(status_code=304, headers={"ETag": f'"{asset.etag}"'})
+
+    return Response(
+        content=asset.content,
+        media_type=asset.content_type,
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "ETag": f'"{asset.etag}"',
+        },
+    )
+
+
+@app.post("/api/reload")
+@app.post("/api/admin/reload")
+async def api_reload() -> dict[str, str]:
+    """Reload portal configuration from disk and clear cached icons."""
+    _ = reload_configuration()
+    return {"status": "reloaded"}

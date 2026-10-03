@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 import httpx
 
+from app.cache import AssetCacheService
 from app.config import ServiceConfig
 
 
@@ -18,16 +19,23 @@ class CachedIcon(NamedTuple):
 
 
 class IconService:
+    cache_ttl: float
+    negative_ttl: float
+    timeout: float
+    asset_cache: AssetCacheService
+
     def __init__(
         self,
         cache_ttl: float = 86400.0,
         negative_ttl: float = 300.0,
         timeout: float = 3.0,
         ca_bundle: str | None = None,
+        asset_cache: AssetCacheService | None = None,
     ) -> None:
         self.cache_ttl = cache_ttl
         self.negative_ttl = negative_ttl
         self.timeout = timeout
+        self.asset_cache = asset_cache if asset_cache is not None else AssetCacheService()
         if ca_bundle is None and os.path.exists("/etc/ssl/certs/ca-certificates.crt"):
             self.ca_bundle: str | bool = "/etc/ssl/certs/ca-certificates.crt"
         else:
@@ -35,6 +43,11 @@ class IconService:
 
         self._cache: dict[str, CachedIcon] = {}
         self._negative_cache: dict[str, float] = {}
+
+    def clear_cache(self) -> None:
+        """Clear in-memory and negative cache."""
+        self._cache.clear()
+        self._negative_cache.clear()
 
     def _get_client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(
@@ -186,6 +199,21 @@ class IconService:
                 return cached
             del self._cache[service_key]
 
+        # 1b. Persistent disk cache hit (favicons survive restarts)
+        disk_cached = self.asset_cache.disk_cache.get("favicons", service.service_id)
+        if disk_cached:
+            data, meta = disk_cached
+            expires_at = float(meta.get("expires_at", 0))
+            if now < expires_at:
+                cached = CachedIcon(
+                    content=data,
+                    media_type=str(meta.get("content_type", "image/png")),
+                    etag=str(meta.get("etag", hashlib.md5(data).hexdigest())),
+                    expires_at=expires_at,
+                )
+                self._cache[service_key] = cached
+                return cached
+
         # 2. Negative cache hit
         if service_key in self._negative_cache:
             if self._negative_cache[service_key] > now:
@@ -226,6 +254,9 @@ class IconService:
                         expires_at=now + self.cache_ttl,
                     )
                     self._cache[service_key] = cached
+                    self.asset_cache.disk_cache.put(
+                        "favicons", service.service_id, content, media_type, etag, self.cache_ttl
+                    )
                     return cached
 
             # Step 3: Fallback to fallback_icon (or icon)
@@ -253,6 +284,24 @@ class IconService:
                             content=content,
                             media_type=media_type,
                             etag=etag,
+                            expires_at=now + self.cache_ttl,
+                        )
+                        self._cache[service_key] = cached
+                        self.asset_cache.disk_cache.put(
+                            "favicons", service.service_id, content, media_type, etag, self.cache_ttl
+                        )
+                        return cached
+                else:
+                    # Named Feather icon fallback resolved via asset cache
+                    feather_asset = await self.asset_cache.get_feather_icon(fallback)
+                    if feather_asset:
+                        content = feather_asset.content
+                        if b'stroke="currentColor"' in content:
+                            content = content.replace(b'stroke="currentColor"', b'stroke="#38bdf8"')
+                        cached = CachedIcon(
+                            content=content,
+                            media_type=feather_asset.content_type,
+                            etag=hashlib.md5(content).hexdigest(),
                             expires_at=now + self.cache_ttl,
                         )
                         self._cache[service_key] = cached

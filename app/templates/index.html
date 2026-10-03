@@ -19,7 +19,12 @@
     {% for category in categories %}
     <section class="category-section" data-category="{{ category.name | lower }}">
       <div class="category-header">
-        <h2 class="category-title">{{ category.name }}</h2>
+        <h2 class="category-title">
+          {% if category.icon %}
+          <i data-feather="{{ category.icon | feather_name }}" class="category-icon"></i>
+          {% endif %}
+          <span>{{ category.name }}</span>
+        </h2>
         <span class="category-count">{{ category.services | length }}</span>
       </div>
       <div class="services-grid">
