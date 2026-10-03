@@ -1,132 +1,86 @@
-# Homelab Portal Configuration Example
-#
-# Place this file at /etc/homelab-portal/config.yml or configure
-# PORTAL_CONFIG_PATH=/path/to/config.yml
-
 ui:
   title: "Homelab Portal"
-  subtitle: "Services & Dashboard"
-  theme: "fiber-optic"  # Options: default, fiber-optic, or custom theme in custom_themes_dir
-  # custom_themes_dir: "/etc/homelab-portal/themes"
+  subtitle: "Services & Resources"
+  theme: "fiber-optic"
   show_search: true
   show_network_badge: true
   show_user_badge: true
-  footer_text: "Homelab Infrastructure"
+  footer_text: "Homelab Portal"
 
 auth:
-  enabled: true
+  enabled: false
   header_user: "Remote-User"
   header_name: "Remote-Name"
   header_email: "Remote-Email"
   header_groups: "Remote-Groups"
   header_group_delimiter: ","
-  login_url: "https://auth.example.com"
-  logout_url: "https://auth.example.com/logout"
+  login_url: null
+  logout_url: null
 
 network:
-  # List trusted reverse proxies (CIDR notation) that append X-Forwarded-For headers.
   trusted_proxies:
     - "127.0.0.1/32"
     - "::1/128"
-    - "10.0.0.10/32"      # Inbound reverse proxy VIP / IP
-    - "192.168.1.0/24"     # Internal proxy subnet
   fallback_class: "external"
-  fallback_name: "WAN / External"
+  fallback_name: "External"
   fallback_icon: "globe"
 
-# Classification tiers for network locations
 network_classes:
   management:
     name: "Management Network"
     icon: "shield"
   internal:
-    name: "Trusted LAN"
-    icon: "house"
+    name: "Home Network"
+    icon: "home"
   guest:
     name: "Guest Network"
     icon: "users"
   external:
-    name: "WAN / External"
+    name: "External"
     icon: "globe"
 
-# Subnet CIDRs evaluated via Longest-Prefix-Match
 subnets:
   - cidr: "192.168.1.0/24"
-    name: "Primary LAN"
+    name: "Internal LAN"
     network_class: "internal"
-
   - cidr: "10.10.0.0/24"
     name: "Admin Subnet"
     network_class: "management"
 
-  - cidr: "172.16.50.0/24"
-    name: "Guest Wi-Fi"
-    network_class: "guest"
-
-# Categories for grouping services
+# Categories and their nested services.
+# When order is omitted, sections and services preserve their natural YAML definition order.
 categories:
   - id: "core"
     name: "Core Services"
     icon: "server"
-    order: 10
+    services:
+      - name: "Proxmox VE"
+        url: "https://pve.example.com:8006"
+        description: "Virtualization management cluster"
+        icon: "server"
+        network_classes:
+          - "management"
+      - name: "FreeIPA"
+        url: "https://ipa.example.com"
+        description: "Identity management & directory services"
+        icon: "key"
+        network_classes:
+          - "management"
 
   - id: "media"
     name: "Media & Streaming"
     icon: "film"
-    order: 20
-
-  - id: "monitoring"
-    name: "Monitoring & Observability"
-    icon: "activity"
-    order: 30
+    services:
+      - name: "Jellyfin"
+        url: "https://jellyfin.example.com"
+        description: "Open source media streaming system"
+        icon: "film"
 
   - id: "home_automation"
     name: "Home Automation"
     icon: "home"
-    order: 40
-
-# Service definitions
-services:
-  - name: "Home Assistant"
-    url: "https://hass.example.com"
-    description: "Home automation hub, sensors, and smart device controls"
-    category: "home_automation"
-    order: 10
-
-  - name: "Jellyfin"
-    url: "https://media.example.com"
-    description: "Movies, television, music, and streaming media library"
-    category: "media"
-    order: 10
-
-  - name: "Grafana"
-    url: "https://grafana.example.com"
-    description: "System metrics, dashboards, and alerting"
-    category: "monitoring"
-    requires_groups:
-      - "admins"
-      - "monitoring"
-    network_classes:
-      - "internal"
-      - "management"
-    order: 10
-
-  - name: "Proxmox VE"
-    url: "https://pve.example.com:8006"
-    description: "Virtualization cluster management and hypervisors"
-    category: "core"
-    requires_groups:
-      - "admins"
-    network_classes:
-      - "management"
-    order: 10
-
-  - name: "FreeIPA"
-    url: "https://ipa.example.com"
-    description: "Identity management, LDAP, and Kerberos domain administration"
-    category: "core"
-    requires_groups:
-      - "admins"
-    network_classes:
-      - "management"
-    order: 20
+    services:
+      - name: "Home Assistant"
+        url: "https://homeassistant.example.com"
+        description: "Home automation and IoT dashboard"
+        icon: "home"
