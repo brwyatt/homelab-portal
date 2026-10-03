@@ -281,4 +281,47 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof feather !== 'undefined' && feather.replace) {
     feather.replace();
   }
+
+  // --- 4. Service Health Check Status Polling ---
+  async function updateHealthStatuses() {
+    try {
+      const response = await fetch('/api/status');
+      if (!response.ok) return;
+      const data = await response.json();
+      const statuses = data.statuses || {};
+
+      serviceCards.forEach(card => {
+        const serviceId = card.getAttribute('data-service-id');
+        if (!serviceId) return;
+
+        const footer = card.querySelector('.card-footer');
+        const pill = card.querySelector('.status-pill');
+        if (!footer || !pill) return;
+
+        const info = statuses[serviceId];
+        if (!info || info.status === 'unknown') {
+          // No healthcheck configured or status unknown
+          pill.className = 'status-pill status-unknown';
+          const textEl = pill.querySelector('.status-text');
+          if (textEl) textEl.textContent = 'Unknown';
+          pill.title = info?.message || 'No health check configured';
+        } else if (info.status === 'up') {
+          pill.className = 'status-pill status-up';
+          const textEl = pill.querySelector('.status-text');
+          if (textEl) textEl.textContent = 'Online';
+          pill.title = info.message ? `${info.message} (${info.status_code || 200})` : 'Online';
+        } else if (info.status === 'down') {
+          pill.className = 'status-pill status-down';
+          const textEl = pill.querySelector('.status-text');
+          if (textEl) textEl.textContent = 'Offline';
+          pill.title = info.message || 'Offline';
+        }
+      });
+    } catch {
+      // Ignore background poll errors
+    }
+  }
+
+  // Initial status check on page load (no periodic polling to avoid idle client background traffic)
+  updateHealthStatuses();
 });

@@ -16,6 +16,7 @@ from app.config import PortalConfig, load_config
 from app.icons import normalize_icon_name
 from app.network import get_client_ip, resolve_location
 from app.service_loader import get_accessible_services
+from app.services.health_service import health_service
 from app.services.icon_service import IconService
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ async def lifespan(_app: FastAPI):
     """FastAPI lifespan to trigger non-blocking asset pre-warming on startup."""
     _ = asyncio.create_task(prewarm_assets(config))
     yield
+    await health_service.close()
 
 
 def reload_configuration() -> PortalConfig:
@@ -181,6 +183,27 @@ async def healthz() -> dict[str, str]:
 async def readyz() -> dict[str, str]:
     """Readiness probe."""
     return {"status": "ready"}
+
+
+@app.get("/api/status")
+async def api_status(request: Request) -> dict[str, object]:
+    """Return health check statuses for services accessible to the current client."""
+    client_ip = get_client_ip(request, config.network)
+    location = resolve_location(client_ip, config)
+    user = get_user_context(request, config.auth)
+    categories = get_accessible_services(config, user, location)
+
+    visible_services = [svc for cat in categories for svc in cat.services]
+
+    # Concurrently fetch health statuses (using cache & coalescing locks)
+    tasks = [health_service.get_service_status(svc) for svc in visible_services]
+    statuses = await asyncio.gather(*tasks)
+
+    result: dict[str, dict[str, object]] = {}
+    for svc, status in zip(visible_services, statuses):
+        result[svc.service_id] = status.model_dump()
+
+    return {"statuses": result}
 
 
 @app.get("/api/context")

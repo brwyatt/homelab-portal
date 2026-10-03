@@ -44,7 +44,7 @@
       </div>
       <div id="grid-{{ category.id }}" class="services-grid">
         {% for service in category.services %}
-        <a href="{{ service.url }}" target="{{ service.target }}" rel="noopener noreferrer" class="service-card" data-name="{{ service.name | lower }}" data-description="{{ (service.description or '') | lower }}" data-category="{{ category.name | lower }}">
+        <a href="{{ service.url }}" target="{{ service.target }}" rel="noopener noreferrer" class="service-card" data-service-id="{{ service.service_id }}" data-name="{{ service.name | lower }}" data-description="{{ (service.description or '') | lower }}" data-category="{{ category.name | lower }}">
           <div class="card-top">
             <div class="card-icon">
               <img src="/api/services/{{ service.service_id }}/icon" alt="{{ service.name }}" class="icon-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
@@ -65,6 +65,12 @@
             {% if service.description %}
             <p class="service-description">{{ service.description }}</p>
             {% endif %}
+          </div>
+          <div class="card-footer">
+            <span class="status-pill status-loading" title="Checking health...">
+              <span class="status-dot"></span>
+              <span class="status-text">Checking...</span>
+            </span>
           </div>
         </a>
         {% endfor %}
