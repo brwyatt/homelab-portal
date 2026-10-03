@@ -99,6 +99,17 @@ class ServiceConfig(BaseModel):
         slug = re.sub(r"[^a-zA-Z0-9_\-]+", "-", self.name.lower()).strip("-")
         return slug or "service"
 
+    @property
+    def is_feather_icon(self) -> bool:
+        if not self.icon:
+            return False
+        return not (
+            self.icon.startswith("http://")
+            or self.icon.startswith("https://")
+            or self.icon.startswith("/")
+            or self.icon.startswith("static/")
+        )
+
     @override
     def model_post_init(self, __context: object) -> None:
         if self.public is None:

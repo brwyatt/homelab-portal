@@ -285,3 +285,11 @@ async def get_feather_icon_asset(icon_name: str, request: Request) -> Response:
             "ETag": f'"{asset.etag}"',
         },
     )
+
+
+@app.post("/api/reload")
+@app.post("/api/admin/reload")
+async def api_reload() -> dict[str, str]:
+    """Reload portal configuration from disk and clear cached icons."""
+    _ = reload_configuration()
+    return {"status": "reloaded"}

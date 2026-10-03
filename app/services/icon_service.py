@@ -203,12 +203,12 @@ class IconService:
         disk_cached = self.asset_cache.disk_cache.get("favicons", service.service_id)
         if disk_cached:
             data, meta = disk_cached
-            expires_at = meta.get("expires_at", 0)
+            expires_at = float(meta.get("expires_at", 0))
             if now < expires_at:
                 cached = CachedIcon(
                     content=data,
-                    media_type=meta.get("content_type", "image/png"),
-                    etag=meta.get("etag", hashlib.md5(data).hexdigest()),
+                    media_type=str(meta.get("content_type", "image/png")),
+                    etag=str(meta.get("etag", hashlib.md5(data).hexdigest())),
                     expires_at=expires_at,
                 )
                 self._cache[service_key] = cached
@@ -295,10 +295,13 @@ class IconService:
                     # Named Feather icon fallback resolved via asset cache
                     feather_asset = await self.asset_cache.get_feather_icon(fallback)
                     if feather_asset:
+                        content = feather_asset.content
+                        if b'stroke="currentColor"' in content:
+                            content = content.replace(b'stroke="currentColor"', b'stroke="#38bdf8"')
                         cached = CachedIcon(
-                            content=feather_asset.content,
+                            content=content,
                             media_type=feather_asset.content_type,
-                            etag=feather_asset.etag,
+                            etag=hashlib.md5(content).hexdigest(),
                             expires_at=now + self.cache_ttl,
                         )
                         self._cache[service_key] = cached
