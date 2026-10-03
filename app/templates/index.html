@@ -27,8 +27,7 @@
         <a href="{{ service.url }}" target="{{ service.target }}" rel="noopener noreferrer" class="service-card" data-name="{{ service.name | lower }}" data-description="{{ (service.description or '') | lower }}" data-category="{{ category.name | lower }}">
           <div class="card-top">
             <div class="card-icon">
-              {% set icon_url = service.icon if (service.icon and (service.icon.startswith('http://') or service.icon.startswith('https://') or service.icon.startswith('/'))) else (service.url.rstrip('/') + '/favicon.ico') %}
-              <img src="{{ icon_url }}" alt="{{ service.name }}" class="icon-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+              <img src="/api/services/{{ service.service_id }}/icon" alt="{{ service.name }}" class="icon-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
               <span class="icon-text" style="display: none;">{{ service.name[:2] | upper }}</span>
             </div>
             <div class="card-badges">

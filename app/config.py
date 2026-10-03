@@ -1,10 +1,11 @@
 """Configuration loader and schema models for Homelab Portal."""
 from __future__ import annotations
 
-import os
-from pathlib import Path
 from typing_extensions import override
 import ipaddress
+import os
+import re
+from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field, field_validator
 
@@ -83,6 +84,7 @@ class ServiceConfig(BaseModel):
     description: str | None = None
     category: str
     icon: str | None = None
+    fallback_icon: str | None = None
     network_classes: list[str] | None = None
     requires_groups: list[str] | None = None
     require_all_groups: bool = False
@@ -91,10 +93,19 @@ class ServiceConfig(BaseModel):
     order: int = 100
     enabled: bool = True
 
+    @property
+    def service_id(self) -> str:
+        slug = re.sub(r"[^a-zA-Z0-9_\-]+", "-", self.name.lower()).strip("-")
+        return slug or "service"
+
     @override
     def model_post_init(self, __context: object) -> None:
         if self.public is None:
             self.public = self.requires_groups is None or len(self.requires_groups) == 0
+        if self.fallback_icon is None and self.icon is not None:
+            self.fallback_icon = self.icon
+        elif self.icon is None and self.fallback_icon is not None:
+            self.icon = self.fallback_icon
 
 
 class PortalConfig(BaseModel):
@@ -105,6 +116,12 @@ class PortalConfig(BaseModel):
     subnets: list[SubnetConfig] = Field(default_factory=list)
     categories: list[CategoryConfig] = Field(default_factory=list)
     services: list[ServiceConfig] = Field(default_factory=list)
+
+    def get_service_by_id(self, service_id: str) -> ServiceConfig | None:
+        for s in self.services:
+            if s.service_id == service_id:
+                return s
+        return None
 
 
 def find_config_file() -> Path | None:
