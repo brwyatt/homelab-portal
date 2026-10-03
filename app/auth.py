@@ -1,6 +1,8 @@
 """Authentication context parsing and user model."""
 from __future__ import annotations
 
+import re
+import urllib.parse
 from dataclasses import dataclass, field
 from fastapi import Request
 
@@ -81,9 +83,6 @@ def resolve_auth_url(url_template: str | None, request: Request | None) -> str |
         return None
     if not request:
         return url_template
-
-    import re
-    import urllib.parse
 
     raw_scheme = (
         request.headers.get("x-forwarded-proto")
