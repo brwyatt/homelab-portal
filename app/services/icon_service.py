@@ -212,20 +212,21 @@ class IconService:
                         self._cache[service_key] = cached
                         return cached
 
-            # Step 2: Fallback to root /favicon.ico
-            root_favicon = urllib.parse.urljoin(service.url, "/favicon.ico")
-            img_result = await self._fetch_image(client, root_favicon)
-            if img_result:
-                content, media_type = img_result
-                etag = hashlib.md5(content).hexdigest()
-                cached = CachedIcon(
-                    content=content,
-                    media_type=media_type,
-                    etag=etag,
-                    expires_at=now + self.cache_ttl,
-                )
-                self._cache[service_key] = cached
-                return cached
+            # Step 2: Fallback to root /favicon.svg, then /favicon.ico
+            for fallback_path in ("/favicon.svg", "/favicon.ico"):
+                root_fallback = urllib.parse.urljoin(service.url, fallback_path)
+                img_result = await self._fetch_image(client, root_fallback)
+                if img_result:
+                    content, media_type = img_result
+                    etag = hashlib.md5(content).hexdigest()
+                    cached = CachedIcon(
+                        content=content,
+                        media_type=media_type,
+                        etag=etag,
+                        expires_at=now + self.cache_ttl,
+                    )
+                    self._cache[service_key] = cached
+                    return cached
 
             # Step 3: Fallback to fallback_icon (or icon)
             fallback = service.fallback_icon or service.icon
