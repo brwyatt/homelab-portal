@@ -1,5 +1,5 @@
 from app.auth import UserContext
-from app.config import CategoryConfig, PortalConfig, ServiceConfig
+from app.config import AccessConfig, CategoryConfig, PortalConfig, ServiceConfig
 from app.network import NetworkLocation
 from app.service_loader import get_accessible_services, is_service_visible
 
@@ -29,7 +29,7 @@ def test_is_service_visible_network_class():
         name="Internal Only",
         url="https://int.local",
         category="core",
-        network_classes=["internal", "management"],
+        access=AccessConfig(network_classes=["internal", "management"]),
     )
 
     assert is_service_visible(service_restricted, user, loc_internal) is True
@@ -54,12 +54,51 @@ def test_is_service_visible_groups():
         name="Admin Panel",
         url="https://admin.local",
         category="core",
-        requires_groups=["admins"],
+        access=AccessConfig(groups=["admins"]),
     )
 
     assert is_service_visible(svc, anon, loc) is False
     assert is_service_visible(svc, user_regular, loc) is False
     assert is_service_visible(svc, user_admin, loc) is True
+
+
+def test_is_service_visible_users_and_groups():
+    loc = NetworkLocation(
+        client_ip="10.0.0.1",
+        network_class="internal",
+        network_class_name="Internal",
+        network_class_icon="home",
+        subnet_cidr=None,
+        subnet_name="LAN",
+        icon="home",
+    )
+    user_bob = UserContext(authenticated=True, username="bob", groups=["users"])
+    user_alice = UserContext(authenticated=True, username="alice", groups=["users", "admins"])
+    user_carol = UserContext(authenticated=True, username="carol", groups=["admins"])
+
+    # Match ALL (default): user in users AND group in groups
+    svc_all = ServiceConfig(
+        name="Bob Admin Only",
+        url="https://bob.local",
+        category="core",
+        access=AccessConfig(users=["bob"], groups=["admins"], match="all"),
+    )
+    assert is_service_visible(svc_all, user_bob, loc) is False  # Bob lacks admins group
+    assert is_service_visible(svc_all, user_alice, loc) is False  # Alice has admin but is not bob
+    user_bob_admin = UserContext(authenticated=True, username="bob", groups=["admins"])
+    assert is_service_visible(svc_all, user_bob_admin, loc) is True
+
+    # Match ANY: user in users OR group in groups
+    svc_any = ServiceConfig(
+        name="Bob or Admins",
+        url="https://shared.local",
+        category="core",
+        access=AccessConfig(users=["bob"], groups=["admins"], match="any"),
+    )
+    assert is_service_visible(svc_any, user_bob, loc) is True   # Bob matches user
+    assert is_service_visible(svc_any, user_carol, loc) is True # Carol matches admins group
+    user_eve = UserContext(authenticated=True, username="eve", groups=["users"])
+    assert is_service_visible(svc_any, user_eve, loc) is False  # Eve matches neither
 
 
 def test_get_accessible_services_grouping():

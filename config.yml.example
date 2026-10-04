@@ -58,14 +58,18 @@ categories:
         url: "https://pve.example.com:8006"
         description: "Virtualization management cluster"
         icon: "server"
-        network_classes:
-          - "management"
+        access:
+          network_classes:
+            - "management"
+          groups:
+            - "admins"
       - name: "FreeIPA"
         url: "https://ipa.example.com"
         description: "Identity management & directory services"
         icon: "key"
-        network_classes:
-          - "management"
+        access:
+          network_classes:
+            - "management"
 
   - id: "media"
     name: "Media & Streaming"

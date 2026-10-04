@@ -25,23 +25,27 @@ def is_service_visible(
     if not service.enabled:
         return False
 
-    # 1. Network Location Filter
-    if service.network_classes:
-        if location.network_class not in service.network_classes:
-            return False
+    access = service.access
+    if not access:
+        return True
 
-    # 2. Authentication & Group Filter
-    if service.requires_groups:
-        if not user.authenticated:
-            return False
-        if service.require_all_groups:
-            if not user.has_all_groups(service.requires_groups):
-                return False
-        else:
-            if not user.has_any_group(service.requires_groups):
-                return False
+    if access.network_classes and location.network_class not in access.network_classes:
+        return False
 
-    return True
+    if not (access.users or access.groups):
+        return True
+
+    if not user.authenticated:
+        return False
+
+    checks: list[bool] = []
+    if access.users:
+        checks.append(user.matches_user(access.users))
+    if access.groups:
+        match_fn = user.has_all_groups if access.require_all_groups else user.has_any_group
+        checks.append(match_fn(access.groups))
+
+    return any(checks) if access.match == "any" else all(checks)
 
 
 def get_accessible_services(

@@ -30,6 +30,11 @@ class UserContext:
         req_groups = {g.lower() for g in required_groups}
         return req_groups.issubset(user_groups)
 
+    def matches_user(self, allowed_users: list[str]) -> bool:
+        if not self.username:
+            return False
+        return self.username.lower() in [u.lower() for u in allowed_users]
+
 
 def get_user_context(request: Request, auth_config: AuthConfig) -> UserContext:
     """Extract authenticated user info and group memberships from headers."""
