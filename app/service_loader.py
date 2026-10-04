@@ -26,49 +26,26 @@ def is_service_visible(
         return False
 
     access = service.access
-    if access is None:
+    if not access:
         return True
 
-    # 1. Network Location Filter
-    if access.network_classes:
-        if location.network_class not in access.network_classes:
-            return False
+    if access.network_classes and location.network_class not in access.network_classes:
+        return False
 
-    # 2. Authentication & Identity Filter (users / groups)
-    has_user_filter = bool(access.users)
-    has_group_filter = bool(access.groups)
-
-    if not has_user_filter and not has_group_filter:
+    if not (access.users or access.groups):
         return True
 
     if not user.authenticated:
         return False
 
-    # Check user identity match
-    user_match = user.matches_user(access.users) if has_user_filter else None
+    checks: list[bool] = []
+    if access.users:
+        checks.append(user.matches_user(access.users))
+    if access.groups:
+        match_fn = user.has_all_groups if access.require_all_groups else user.has_any_group
+        checks.append(match_fn(access.groups))
 
-    # Check group membership match
-    group_match: bool | None = None
-    if has_group_filter:
-        if access.require_all_groups:
-            group_match = user.has_all_groups(access.groups)
-        else:
-            group_match = user.has_any_group(access.groups)
-
-    # Evaluate combined rule
-    if has_user_filter and has_group_filter:
-        if access.match == "any":
-            return bool(user_match or group_match)
-        else:  # "all"
-            return bool(user_match and group_match)
-
-    if has_user_filter:
-        return bool(user_match)
-
-    if has_group_filter:
-        return bool(group_match)
-
-    return True
+    return any(checks) if access.match == "any" else all(checks)
 
 
 def get_accessible_services(
