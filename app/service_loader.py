@@ -25,21 +25,48 @@ def is_service_visible(
     if not service.enabled:
         return False
 
+    access = service.access
+    if access is None:
+        return True
+
     # 1. Network Location Filter
-    if service.network_classes:
-        if location.network_class not in service.network_classes:
+    if access.network_classes:
+        if location.network_class not in access.network_classes:
             return False
 
-    # 2. Authentication & Group Filter
-    if service.requires_groups:
-        if not user.authenticated:
-            return False
-        if service.require_all_groups:
-            if not user.has_all_groups(service.requires_groups):
-                return False
+    # 2. Authentication & Identity Filter (users / groups)
+    has_user_filter = bool(access.users)
+    has_group_filter = bool(access.groups)
+
+    if not has_user_filter and not has_group_filter:
+        return True
+
+    if not user.authenticated:
+        return False
+
+    # Check user identity match
+    user_match = user.matches_user(access.users) if has_user_filter else None
+
+    # Check group membership match
+    group_match: bool | None = None
+    if has_group_filter:
+        if access.require_all_groups:
+            group_match = user.has_all_groups(access.groups)
         else:
-            if not user.has_any_group(service.requires_groups):
-                return False
+            group_match = user.has_any_group(access.groups)
+
+    # Evaluate combined rule
+    if has_user_filter and has_group_filter:
+        if access.match == "any":
+            return bool(user_match or group_match)
+        else:  # "all"
+            return bool(user_match and group_match)
+
+    if has_user_filter:
+        return bool(user_match)
+
+    if has_group_filter:
+        return bool(group_match)
 
     return True
 

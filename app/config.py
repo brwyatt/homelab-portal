@@ -1,11 +1,12 @@
 """Configuration loader and schema models for Homelab Portal."""
 from __future__ import annotations
 
-from typing_extensions import override
 import ipaddress
 import os
 import re
 from pathlib import Path
+from typing import Literal
+from typing_extensions import override
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -83,6 +84,14 @@ class HealthCheckConfig(BaseModel):
     headers: dict[str, str] = Field(default_factory=dict)
 
 
+class AccessConfig(BaseModel):
+    users: list[str] = Field(default_factory=list)
+    groups: list[str] = Field(default_factory=list)
+    require_all_groups: bool = False
+    network_classes: list[str] = Field(default_factory=list)
+    match: Literal["all", "any"] = "all"
+
+
 class ServiceConfig(BaseModel):
     name: str
     url: str
@@ -90,9 +99,7 @@ class ServiceConfig(BaseModel):
     category: str | None = None
     icon: str | None = None
     fallback_icon: str | None = None
-    network_classes: list[str] | None = None
-    requires_groups: list[str] | None = None
-    require_all_groups: bool = False
+    access: AccessConfig | None = None
     public: bool | None = None
     target: str = "_blank"
     order: int | None = None
@@ -118,7 +125,10 @@ class ServiceConfig(BaseModel):
     @override
     def model_post_init(self, __context: object) -> None:
         if self.public is None:
-            self.public = self.requires_groups is None or len(self.requires_groups) == 0
+            if self.access is None:
+                self.public = True
+            else:
+                self.public = (len(self.access.users) == 0 and len(self.access.groups) == 0)
         if self.fallback_icon is None and self.icon is not None:
             self.fallback_icon = self.icon
         elif self.icon is None and self.fallback_icon is not None:

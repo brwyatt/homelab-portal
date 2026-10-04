@@ -78,10 +78,14 @@ services:
     url: "https://pve.example.com:8006"
     description: "Virtualization hypervisors"
     category: "core"
-    requires_groups:
-      - "admins"
-    network_classes:
-      - "management"
+    access:
+      users:
+        - "bwyatt"
+      groups:
+        - "admins"
+      network_classes:
+        - "management"
+      match: "all"  # "all" (default) or "any"
 ```
 
 ---

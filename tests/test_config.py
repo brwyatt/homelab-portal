@@ -28,12 +28,19 @@ def test_service_public_default():
                 name="Restricted Service",
                 url="https://priv.com",
                 category="general",
-                requires_groups=["admins"],
+                access={"groups": ["admins"]},
+            ),
+            ServiceConfig(
+                name="User Restricted Service",
+                url="https://user.com",
+                category="general",
+                access={"users": ["bwyatt"]},
             ),
         ]
     )
     assert config.services[0].public is True
     assert config.services[1].public is False
+    assert config.services[2].public is False
 
 
 def test_load_example_config():
