@@ -80,7 +80,7 @@ services:
     category: "core"
     access:
       users:
-        - "bwyatt"
+        - "someuser"
       groups:
         - "admins"
       network_classes:
